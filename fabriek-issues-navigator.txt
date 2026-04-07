@@ -1,0 +1,2229 @@
+<!DOCTYPE html>
+
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fabriek Issues Navigator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;0,9..40,900;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+```
+:root {
+  --bg0: #f4f2ed;
+  --bg1: #faf9f6;
+  --bg2: #edeae3;
+  --bg3: #e4e0d7;
+  --text: #18170f;
+  --text2: #3a3830;
+  --muted: #6b6860;
+  --border: rgba(0,0,0,0.09);
+  --border2: rgba(0,0,0,0.18);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow: 0 8px 28px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+  --radius: 18px;
+  --radius-sm: 12px;
+
+  --infoBg: #e8f0fc;
+  --infoText: #1a4fa8;
+  --infoBorder: rgba(26,79,168,0.22);
+
+  --warnBg: #fef3e2;
+  --warnText: #7a4700;
+  --warnBorder: rgba(122,71,0,0.22);
+
+  --dangerBg: #fde8ec;
+  --dangerText: #8a1f2b;
+  --dangerBorder: rgba(138,31,43,0.22);
+
+  --successBg: #e8f5e0;
+  --successText: #2e6b0e;
+  --successBorder: rgba(46,107,14,0.22);
+
+  --rework: #D85A30;
+  --voorraad: #2272C3;
+  --machine: #3B7A1A;
+  --kwaliteit: #6B5CE7;
+  --pickfout: #C8386D;
+
+  --sidebarW: 340px;
+  --headerH: 72px;
+  --crumbH: 40px;
+
+  --font: 'DM Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg0: #1a1916;
+    --bg1: #211f1c;
+    --bg2: #2a2825;
+    --bg3: #33302c;
+    --text: #f0ede4;
+    --text2: #c8c5bc;
+    --muted: #8a8880;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+    --shadow: 0 8px 28px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.18);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.28);
+    --infoBg: #0d2448;
+    --infoText: #7aadee;
+    --infoBorder: rgba(122,173,238,0.22);
+    --warnBg: #251b08;
+    --warnText: #f4c06a;
+    --warnBorder: rgba(244,192,106,0.22);
+    --dangerBg: #2a0d12;
+    --dangerText: #f4909e;
+    --dangerBorder: rgba(244,144,158,0.22);
+    --successBg: #0f2207;
+    --successText: #8fd06a;
+    --successBorder: rgba(143,208,106,0.22);
+  }
+}
+
+/* === NOISE TEXTURE OVERLAY === */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.5;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg0);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* === LAYOUT === */
+.app {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: var(--headerH) var(--crumbH) 1fr;
+}
+
+/* === HEADER === */
+.header {
+  height: var(--headerH);
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  position: relative;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--rework), #f08060);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(216,90,48,0.35);
+}
+
+.brand-text h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.brand-text .sub {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* === SEARCH === */
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 480px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 0 6px 0 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-wrap:focus-within {
+  border-color: var(--infoText);
+  box-shadow: 0 0 0 3px var(--infoBg);
+}
+
+.search-wrap input {
+  flex: 1;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.search-wrap input::placeholder { color: var(--muted); }
+
+/* === BUTTONS === */
+.btn {
+  border: 1px solid var(--border2);
+  background: var(--bg1);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.06s ease, background 0.12s, border-color 0.12s, box-shadow 0.12s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: -0.01em;
+}
+
+.btn:hover { background: var(--bg2); box-shadow: var(--shadow-sm); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
+
+.btn-primary {
+  background: var(--infoBg);
+  color: var(--infoText);
+  border-color: var(--infoBorder);
+}
+.btn-primary:hover { background: var(--infoBg); filter: brightness(1.05); }
+
+.btn-danger {
+  background: var(--dangerBg);
+  color: var(--dangerText);
+  border-color: var(--dangerBorder);
+}
+.btn-danger:hover { background: var(--dangerBg); filter: brightness(1.04); }
+
+.btn-warn {
+  background: var(--warnBg);
+  color: var(--warnText);
+  border-color: var(--warnBorder);
+}
+
+.btn-success {
+  background: var(--successBg);
+  color: var(--successText);
+  border-color: var(--successBorder);
+}
+
+.btn-icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+/* === FAB (floating action button) === */
+.fab {
+  position: fixed;
+  right: calc(var(--sidebarW) + 28px);
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--rework), #e87050);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 6px 24px rgba(216,90,48,0.45), 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 90;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s;
+  color: white;
+}
+.fab:hover { transform: scale(1.08) translateY(-2px); box-shadow: 0 10px 32px rgba(216,90,48,0.50); }
+.fab:active { transform: scale(0.96); }
+.fab-label {
+  position: fixed;
+  right: calc(var(--sidebarW) + 90px);
+  bottom: 36px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.fab:hover + .fab-label { opacity: 1; transform: translateX(0); }
+
+@media (max-width: 980px) {
+  .fab { right: 20px; }
+  .fab-label { display: none; }
+}
+
+/* === CRUMB === */
+.crumb-row {
+  height: var(--crumbH);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg1);
+  z-index: 90;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.crumb-row::-webkit-scrollbar { display: none; }
+
+.crumb-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  animation: crumbIn 0.2s ease both;
+}
+
+@keyframes crumbIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.crumb-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--infoText);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+.crumb-link:hover { background: var(--infoBg); }
+
+.crumb-sep {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 2px;
+  opacity: 0.5;
+}
+
+.crumb-current {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text2);
+  padding: 4px 6px;
+}
+
+/* === MAIN LAYOUT === */
+.main {
+  height: calc(100vh - var(--headerH) - var(--crumbH));
+  display: grid;
+  grid-template-columns: 1fr var(--sidebarW);
+  gap: 0;
+  overflow: hidden;
+}
+
+/* === CONTENT === */
+.content {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+.content-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  padding: 20px 20px 40px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.screen { display: none; }
+.screen.active {
+  display: block;
+  animation: screenIn 0.22s cubic-bezier(0.25,0.46,0.45,0.94) both;
+}
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === SIDEBAR === */
+.sidebar {
+  background: var(--bg1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebar-head {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-head h3 {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.sidebar-head .sub {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.sidebar-body {
+  padding: 14px 14px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+/* === PANELS === */
+.panel {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 18px;
+  margin-bottom: 14px;
+}
+
+.panel:last-child { margin-bottom: 0; }
+
+.panel h2 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.panel > p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* === RULE BOX === */
+.rule-box {
+  background: var(--warnBg);
+  color: var(--warnText);
+  border: 1px solid var(--warnBorder);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.rule-box b { color: var(--dangerText); }
+.rule-box .rule-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* === GRID LAYOUTS === */
+.grid-depts { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 12px; margin-top: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+
+/* === BIG CARDS === */
+.big-card {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: transform 0.1s cubic-bezier(0.34,1.56,0.64,1), border-color 0.15s, box-shadow 0.15s;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  animation: cardIn 0.3s cubic-bezier(0.25,0.46,0.45,0.94) both;
+}
+
+.big-card:nth-child(1) { animation-delay: 0.04s; }
+.big-card:nth-child(2) { animation-delay: 0.08s; }
+.big-card:nth-child(3) { animation-delay: 0.12s; }
+.big-card:nth-child(4) { animation-delay: 0.16s; }
+.big-card:nth-child(5) { animation-delay: 0.20s; }
+.big-card:nth-child(6) { animation-delay: 0.24s; }
+.big-card:nth-child(7) { animation-delay: 0.28s; }
+.big-card:nth-child(8) { animation-delay: 0.32s; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.big-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: var(--border2);
+  box-shadow: var(--shadow-lg);
+}
+
+.big-card:active { transform: translateY(-1px) scale(0.99); }
+
+.big-card .card-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+
+.big-card .card-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.accent-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+  border-radius: 18px 0 0 18px;
+}
+
+/* === PILLS & TAGS === */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+}
+
+.pill.bleeder {
+  background: var(--dangerBg);
+  color: var(--dangerText);
+  border-color: var(--dangerBorder);
+}
+
+.tag {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+}
+
+.tag-open { background: #fde8e0; color: #8a2200; border-color: rgba(138,34,0,0.2); }
+.tag-lopend { background: #fef3d4; color: #7a4000; border-color: rgba(122,64,0,0.2); }
+.tag-done { background: #dff4d4; color: #2a5e0a; border-color: rgba(42,94,10,0.2); }
+
+.tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+/* === GALLERY (photo grid) === */
+.gallery-wrap {
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - var(--headerH) - var(--crumbH) - 240px);
+  min-height: 320px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.gallery { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); gap: 12px; }
+
+.photo-card {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.1s cubic-bezier(0.34,1.56,0.64,1), border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow-sm);
+  animation: cardIn 0.3s cubic-bezier(0.25,0.46,0.45,0.94) both;
+}
+
+.photo-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: var(--border2);
+  box-shadow: var(--shadow);
+}
+
+.photo-frame {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, var(--bg3) 0%, var(--bg2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.placeholder .icon { font-size: 24px; opacity: 0.3; }
+
+.photo-info { padding: 12px 12px 12px; display: flex; flex-direction: column; gap: 5px; }
+.photo-info .name { font-size: 12.5px; font-weight: 800; line-height: 1.3; letter-spacing: -0.01em; }
+.photo-info .sub { font-size: 11px; color: var(--muted); line-height: 1.3; }
+
+/* === DETAIL VIEW === */
+.detail {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 14px;
+  margin-top: 0;
+}
+
+.detail-left, .detail-right {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.hero {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, var(--bg3), var(--bg2));
+  position: relative;
+  overflow: hidden;
+}
+
+.hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.hero-label {
+  position: absolute;
+  left: 12px; bottom: 12px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  max-width: 92%;
+  line-height: 1.25;
+}
+
+.thumbs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  overflow-x: auto;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  scrollbar-width: none;
+}
+.thumbs::-webkit-scrollbar { display: none; }
+
+.thumb {
+  width: 140px;
+  aspect-ratio: 16/9;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: var(--bg3);
+  transition: border-color 0.12s, transform 0.1s;
+}
+.thumb:hover { border-color: var(--infoText); transform: scale(1.03); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.detail-right .box {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-right .box:last-child { border-bottom: none; }
+
+.kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  font-family: var(--mono);
+}
+
+.detail-title {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.detail-text {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.detail-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* === STEPS === */
+.steps { display: flex; flex-direction: column; gap: 0; }
+
+.step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.step:last-child { border-bottom: none; }
+
+.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--muted);
+  flex-shrink: 0;
+  font-family: var(--mono);
+}
+
+.step-body .t { font-size: 12.5px; font-weight: 700; line-height: 1.4; }
+.step-body .o { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* === SAP BLOCK === */
+.sap-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.sap-item { }
+.sap-item .sap-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-family: var(--mono);
+}
+.sap-value {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-weight: 500;
+}
+
+/* === SIDEBAR WIDGETS === */
+.side-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.side-panel-head {
+  padding: 10px 12px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.side-panel-head .t { font-size: 12px; font-weight: 800; }
+
+.bleeders-list { display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; scrollbar-width: thin; }
+
+.bleed-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--bg1);
+  transition: background 0.1s;
+}
+.bleed-item:last-child { border-bottom: none; }
+.bleed-item:hover { background: var(--bg2); }
+.bleed-item .n { font-size: 12px; font-weight: 800; line-height: 1.3; margin-bottom: 3px; }
+.bleed-item .p { font-size: 10.5px; color: var(--muted); }
+
+.escalatie-card {
+  background: var(--dangerBg);
+  border: 1px solid var(--dangerBorder);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.escalatie-card h4 { font-size: 12px; font-weight: 800; color: var(--dangerText); margin-bottom: 6px; }
+.escalatie-card p { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin-bottom: 10px; }
+
+/* === MOBILE SIDEBAR OVERLAY === */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-drawer {
+  position: fixed;
+  right: 0; top: 0; bottom: 0;
+  width: min(340px, 92vw);
+  background: var(--bg1);
+  border-left: 1px solid var(--border);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94);
+  box-shadow: var(--shadow-lg);
+}
+
+.sidebar-overlay.open { display: block; }
+.sidebar-overlay.open .sidebar-drawer { transform: translateX(0); }
+
+/* === MODAL === */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 300;
+}
+
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  width: min(720px, 96vw);
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modalIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.94) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg1);
+}
+
+.modal-title { font-size: 14px; font-weight: 900; letter-spacing: -0.01em; }
+
+.modal-body {
+  padding: 16px;
+  max-height: 76vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.modal-body h4 {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 14px 0 6px;
+  font-family: var(--mono);
+}
+
+.modal-body p, .modal-body li {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.modal-body ul { margin-left: 18px; }
+
+/* === MELDING FORM === */
+.form-grid { display: flex; flex-direction: column; gap: 12px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+
+.form-field label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: var(--infoText);
+  box-shadow: 0 0 0 3px var(--infoBg);
+}
+
+.form-field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+.form-field select {
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+.ernst-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.ernst-option {
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.12s;
+  background: var(--bg2);
+}
+.ernst-option:hover { border-color: var(--border2); background: var(--bg3); }
+.ernst-option.selected-laag { background: var(--successBg); color: var(--successText); border-color: var(--successBorder); }
+.ernst-option.selected-midden { background: var(--warnBg); color: var(--warnText); border-color: var(--warnBorder); }
+.ernst-option.selected-hoog { background: var(--dangerBg); color: var(--dangerText); border-color: var(--dangerBorder); }
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.form-preview {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-family: var(--mono);
+  line-height: 1.6;
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: none;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1280px) {
+  :root { --sidebarW: 300px; }
+  .grid-depts { grid-template-columns: repeat(3, minmax(180px, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(3, minmax(180px, 1fr)); }
+  .gallery { grid-template-columns: repeat(3, minmax(180px, 1fr)); }
+}
+
+@media (max-width: 980px) {
+  .main { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .grid-depts { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .gallery { grid-template-columns: repeat(2, 1fr); }
+  .detail { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .grid-depts { grid-template-columns: 1fr; }
+  .gallery { grid-template-columns: 1fr; }
+  .sap-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+/* === SEARCH RESULTS === */
+.search-hits { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+
+.hit-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.12s, box-shadow 0.12s;
+  animation: cardIn 0.25s ease both;
+}
+
+.hit-card:hover { transform: translateX(4px); border-color: var(--border2); box-shadow: var(--shadow-sm); }
+.hit-card .ht { font-size: 13.5px; font-weight: 800; letter-spacing: -0.01em; }
+.hit-card .hm { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.hit-type { font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--border); color: var(--muted); flex-shrink: 0; font-family: var(--mono); }
+
+/* === MOBILE MENU BTN === */
+.mobile-menu-btn { display: none; }
+@media (max-width: 980px) { .mobile-menu-btn { display: flex; } }
+```
+
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">🏭</div>
+      <div class="brand-text">
+        <h1>Fabriek Issues Navigator</h1>
+        <div class="sub">Kennisbron · issues · oplossingen · escalaties</div>
+      </div>
+    </div>
+
+```
+<div class="header-right">
+  <div class="search-wrap">
+    <input id="searchInput" type="search"
+      placeholder="Zoek issue, symptoom, onderdeel…"
+      onkeydown="if(event.key==='Enter') runSearch()" />
+    <button class="btn btn-primary" style="border:none;border-radius:8px;font-size:11px;" onclick="runSearch()">Zoek</button>
+  </div>
+  <button class="btn btn-danger" onclick="openEscalatie('Niet gevonden in dashboard')">⚠ Escaleren</button>
+  <button class="btn" onclick="goHome()">⌂ Home</button>
+  <button class="btn mobile-menu-btn btn-icon" onclick="openMobileSidebar()">☰</button>
+</div>
+```
+
+  </header>
+
+  <!-- BREADCRUMB -->
+
+  <div class="crumb-row" id="breadcrumb"></div>
+
+  <!-- MAIN -->
+
+  <div class="main">
+    <div class="content">
+      <div class="content-scroll" id="contentScroll">
+        <div id="screen-home" class="screen"></div>
+        <div id="screen-afdeling" class="screen"></div>
+        <div id="screen-rework" class="screen"></div>
+        <div id="screen-rework-sub" class="screen"></div>
+        <div id="screen-voorraad" class="screen"></div>
+        <div id="screen-voorraad-sub" class="screen"></div>
+        <div id="screen-machine" class="screen"></div>
+        <div id="screen-machine-part" class="screen"></div>
+        <div id="screen-issue-detail" class="screen"></div>
+        <div id="screen-search" class="screen"></div>
+      </div>
+    </div>
+
+```
+<!-- SIDEBAR (desktop) -->
+<aside class="sidebar" id="desktopSidebar">
+  <div class="sidebar-head">
+    <h3 id="sideTitle">Overzicht</h3>
+    <div class="sub" id="sideSub">Bleeders & escalatieregel.</div>
+  </div>
+  <div class="sidebar-body" id="sideBody"></div>
+</aside>
+```
+
+  </div>
+</div>
+
+<!-- FAB -->
+
+<button class="fab" onclick="openMeldingForm()" title="Nieuw issue melden">＋</button>
+
+<div class="fab-label">Nieuw issue melden</div>
+
+<!-- MOBILE SIDEBAR OVERLAY -->
+
+<div class="sidebar-overlay" id="mobileSidebarOverlay" onclick="closeMobileSidebar()">
+  <div class="sidebar-drawer" onclick="event.stopPropagation()">
+    <div class="sidebar-head" style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h3 id="sideTitle2">Overzicht</h3>
+        <div class="sub" id="sideSub2">Bleeders & escalatieregel.</div>
+      </div>
+      <button class="btn btn-icon" onclick="closeMobileSidebar()">✕</button>
+    </div>
+    <div class="sidebar-body" id="sideBody2"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+
+<div class="modal-backdrop" id="modalBackdrop" onclick="backdropClose(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle">—</div>
+      <button class="btn btn-icon" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const procesEngineer = {
+  name: "Falco van Rooy",
+  email: "fvrooy@dkgdekeukenfabriek.nl"
+};
+
+const afdelingen = [
+  "Goederenontvangst","Machinale","Onderdelen Productie","Halffabricaten",
+  "Lakkerij","Voormontage","Colligroep","Assemblage","Laadplaats","DC",
+  "Roze Bonnen Team","Bedrijfsbureau"
+];
+
+const teamcoachByAfdeling = {
+  "Goederenontvangst":"Teamcoach Goederenontvangst",
+  "Machinale":"Teamcoach Machinale",
+  "Onderdelen Productie":"Teamcoach Onderdelen Productie",
+  "Halffabricaten":"Teamcoach Halffabricaten",
+  "Lakkerij":"Teamcoach Lakkerij",
+  "Voormontage":"Teamcoach Voormontage",
+  "Colligroep":"Teamcoach Colligroep",
+  "Assemblage":"Teamcoach Assemblage",
+  "Laadplaats":"Teamcoach Laadplaats",
+  "DC":"Teamcoach DC",
+  "Roze Bonnen Team":"Teamcoach Roze Bonnen Team",
+  "Bedrijfsbureau":"Teamcoach Bedrijfsbureau"
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  afdeling: null,
+  pad: null,
+  reworkSub: null,
+  voorraadSub: null,
+  machinePart: null,
+  issue: null,
+  heroIndex: 0
+};
+
+/* ============================================================
+   DATA
+   ============================================================ */
+const reworkData = {
+  "Kwaliteit":{
+    accent:"var(--kwaliteit)",
+    issues:[
+      { id:"rw-kw-1", label:"Onderdeel buiten maattolerantie", status:"Lopend", actie:"Hermeting ingepland, order on-hold", actiehouder:"Kwaliteitsdienst", bleeder:true, photos:[], herkenning:"Afwijkende passing / klem / maat buiten tolerantie.", les:"Meetpunt/meetmethode standaardiseren; herhaling = structurele oorzaak.", sap:{transactie:"ZVRS",bestelreden:"Fout Kwaliteit",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} },
+      { id:"rw-kw-2", label:"Oppervlaktedefect na lakproces", status:"Open", actie:"Oorzaakanalyse gestart", actiehouder:"Teamleider Lakkerij", bleeder:true, photos:[], herkenning:"Vlekken, sinaasappelhuid, stofinsluitingen.", les:"Visuele standaard + reiniging/filters borgen; foto's gebruiken voor eenduidigheid.", sap:{transactie:"ZVRS",bestelreden:"Fout Kwaliteit",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} },
+      { id:"rw-kw-3", label:"Verkeerde kleurcode toegepast", status:"Afgehandeld", actie:"Werkinstructie bijgewerkt", actiehouder:"Kwaliteitsmanager", bleeder:false, photos:[], herkenning:"Kleurafwijking zichtbaar t.o.v. referentie.", les:"Dubbel-check kleurcode vóór start; één referentiebron gebruiken.", sap:{transactie:"ZVRS",bestelreden:"Fout Kwaliteit",subreden:"n.t.b.",schadereden:"Fout eigen afdeling",boekingen:[]} }
+    ]
+  },
+  "Voorraad":{
+    accent:"var(--voorraad)",
+    issues:[
+      { id:"rw-vr-1", label:"Onderdeel niet beschikbaar op picklocatie", status:"Lopend", actie:"Navraag bij magazijn loopt", actiehouder:"Magazijnbeheer", bleeder:true, photos:[], herkenning:"Picklijst vraagt item maar locatie leeg.", les:"Herhaling = bleeder; oorzaak benoemen (WMS/locatie/aanvulling/afkeur).", sap:{transactie:"ZVRS",bestelreden:"Geen voorraad / Niet aangeleverd",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} },
+      { id:"rw-vr-2", label:"Verkeerde artikelgrootte geleverd", status:"Open", actie:"Retour in behandeling", actiehouder:"Logistiek", bleeder:false, photos:[], herkenning:"Afmetingen/type wijkt af t.o.v. order/pick.", les:"Artikelidentificatie + visuele check op ontvangstmoment.", sap:{transactie:"ZVRS",bestelreden:"Fout Kwaliteit",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} },
+      { id:"rw-vr-3", label:"Voorraadtelling incorrect in WMS", status:"Lopend", actie:"Steekproeftelling gepland", actiehouder:"Planner", bleeder:true, photos:[], herkenning:"WMS zegt voorraad, fysiek niets (of omgekeerd).", les:"WMS-afwijking is symptoom; check mutaties/retour/afkeur/teldiscipline.", sap:{transactie:"ZVRS",bestelreden:"Geen voorraad",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} }
+    ]
+  },
+  "Pickfout":{
+    accent:"var(--pickfout)",
+    issues:[
+      { id:"rw-pf-1", label:"Verkeerd artikel gepickt op order", status:"Open", actie:"Correctiepick uitstaan", actiehouder:"Operator", bleeder:true, photos:[], herkenning:"Artikelnummer/omschrijving klopt niet met picklijst.", les:"Pickfouten adresseren bij oorzaak (labeling, scans, training, layout).", sap:{transactie:"ZVRS",bestelreden:"Pickfout",subreden:"n.t.b.",schadereden:"Magazijn",boekingen:[]} },
+      { id:"rw-pf-2", label:"Hoeveelheid afwijkend van picklijst", status:"Lopend", actie:"Hertelling gestart", actiehouder:"Teamleider", bleeder:true, photos:[], herkenning:"Aantal in bak/pallet klopt niet met lijst.", les:"Telmomenten + scan discipline; foto's helpen discussie voorkomen.", sap:{transactie:"ZVRS",bestelreden:"Pickfout",subreden:"n.t.b.",schadereden:"Magazijn",boekingen:[]} },
+      { id:"rw-pf-3", label:"Pick op verouderd pickadres", status:"Afgehandeld", actie:"Adres gecorrigeerd in WMS", actiehouder:"Logistiek coördinator", bleeder:false, photos:[], herkenning:"Locatie-info klopt niet met fysieke lay-out.", les:"Adresbeheer = standaardwerk; wijziging direct borgen (visueel + systeem).", sap:{transactie:"ZVRS",bestelreden:"Pickfout",subreden:"n.t.b.",schadereden:"Magazijn",boekingen:[]} }
+    ]
+  }
+};
+
+const voorraadInstructies = {
+  "Verkeerd Artikel":{ accent:"var(--voorraad)", label:"Verkeerd Artikel", photos:[], les:"Altijd eerst scan/vergelijk doen vóórdat materiaal doorgezet wordt; voorkom ketenfout richting productie.", sap:{transactie:"ZVRS",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]}, steps:[{text:"Scan het ontvangen artikel en vergelijk met de picklijst in het WMS.",owner:"Operator / Logistiek"},{text:"Leg het verkeerde artikel apart in de retourlocatie (zone R2).",owner:"Operator"},{text:"Maak een correctiemelding aan in het WMS onder 'Verkeerd artikel ontvangen'.",owner:"Teamleider"},{text:"Informeer Bedrijfsbureau voor correctie van de order.",owner:"Teamleider / Bedrijfsbureau"},{text:"Herplan de pick voor het juiste artikel en sluit de melding af.",owner:"Planner"}] },
+  "Geen Voorraad":{ accent:"var(--voorraad)", label:"Geen Voorraad", photos:[], les:"Maak stockouts zichtbaar als patroon; herhaling = bleeder → structurele maatregel.", sap:{transactie:"ZVRS",bestelreden:"Geen voorraad / Niet aangeleverd",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]}, steps:[{text:"Controleer voorraadstand in WMS en bevestig dat het artikel echt niet aanwezig is.",owner:"Operator"},{text:"Controleer open inkomende orders voor dit artikel in het systeem.",owner:"Logistiek coördinator"},{text:"Schakel Bedrijfsbureau in voor prioritering/alternatieven.",owner:"Teamleider"},{text:"Communiceer verwachte levertijd naar de betreffende afdeling.",owner:"Planner"},{text:"Registreer de stockout in meldingenregister voor analyse.",owner:"Teamleider / Kwaliteit"}] },
+  "Afkeur":{ accent:"var(--kwaliteit)", label:"Afkeur", photos:[], les:"Zonder foto's is herhaling lastig; foto's zijn verplicht bij afkeur.", sap:{transactie:"ZVRS",bestelreden:"Fout Kwaliteit",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]}, steps:[{text:"Isoleer het afgekeurde artikel direct en voorkom verdere verwerking.",owner:"Operator / Kwaliteit"},{text:"Label als 'Afgekeurd' en plaats in quarantainezone.",owner:"Operator"},{text:"Leg kwaliteitsmelding vast met foto-documentatie.",owner:"Kwaliteitsmedewerker"},{text:"Informeer leverancier of interne afdeling afhankelijk van herkomst.",owner:"Teamleider / Inkoop"},{text:"Beslis herstel/vernietiging/retour en boek voorraadmutatie.",owner:"Kwaliteitsmanager"}] },
+  "Retour":{ accent:"var(--pickfout)", label:"Retour", photos:[], les:"Retour = leerinput: benoem altijd oorzaak zodat patroon zichtbaar wordt.", sap:{transactie:"ZVRS",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]}, steps:[{text:"Ontvang en scan retourartikel, controleer retourbon op volledigheid.",owner:"Goederenontvangst"},{text:"Beoordeel staat: terug naar voorraad of inspectie nodig?",owner:"Kwaliteitsmedewerker"},{text:"Verwerk retour in WMS en herstel voorraadpositie.",owner:"Logistiek / Operator"},{text:"Koppel retour aan originele order voor creditering.",owner:"Bedrijfsbureau"},{text:"Archiveer retourbon en sluit melding af.",owner:"Teamleider"}] }
+};
+
+const machineData = {
+  "Machinale":[
+    { machine:"CNC Freesmachine", delen:[
+      { deel:"Spindel & gereedschap", issues:[
+        { id:"m-mch-1", label:"Trillingen bij hoge toerental (>8000rpm)", status:"Lopend", actie:"Balancering ingepland", actiehouder:"Machinebeheer", bleeder:true, photos:[], les:"Trilling = kwaliteitsrisico; leg meetwaarden en video vast.", sap:{transactie:"n.t.b.",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"Machinefout",boekingen:[]} },
+        { id:"m-mch-2", label:"Gereedschapswisselaar slaat mis op positie 4", status:"Open", actie:"Kalibratie uitvoeren", actiehouder:"Operator B. Smit", bleeder:true, photos:[], les:"Symptoom + positie vastleggen; voorkomt 'zoeken' per shift.", sap:{transactie:"n.t.b.",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"Machinefout",boekingen:[]} }
+      ]},
+      { deel:"Koelvloeistof systeem", issues:[
+        { id:"m-mch-3", label:"Vloeistofniveau daalt sneller dan normaal", status:"Lopend", actie:"Lekkagelocatie gezocht", actiehouder:"TD", bleeder:true, photos:[], les:"Foto's van leksporen helpen; herhaling = preventieve check toevoegen.", sap:{transactie:"n.t.b.",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"Machinefout",boekingen:[]} }
+      ]}
+    ]}
+  ]
+};
+
+function defaultMachineData(afd){
+  return [
+    { machine:`Machine A – ${afd}`, delen:[
+      { deel:"Aandrijving & motor", issues:[{ id:`d-${afd}-1`, label:"Overtemperatuur melding bij piekbelasting", status:"Lopend", actie:"Koeling geïnspecteerd, filter vervangen", actiehouder:"Technische Dienst", bleeder:true, photos:[], les:"Overtemp = patroon; leg foutcode + foto display vast.", sap:{transactie:"n.t.b.",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} }] },
+      { deel:"Besturing & sensoren", issues:[{ id:`d-${afd}-2`, label:"Sensor drift bij hoge omgevingstemperatuur", status:"Open", actie:"Sensorvervanging besteld", actiehouder:"TD / Operator", bleeder:true, photos:[], les:"Maak voorbeeldwaarden zichtbaar; voorkomt discussie.", sap:{transactie:"n.t.b.",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} }] }
+    ]},
+    { machine:`Machine B – ${afd}`, delen:[
+      { deel:"Veiligheid & noodstop", issues:[{ id:`d-${afd}-3`, label:"Noodstop test mislukt kwartaalcheck", status:"Lopend", actie:"Herkeuring ingepland", actiehouder:"Veiligheidscoördinator", bleeder:true, photos:[], les:"Veiligheid = direct escaleren.", sap:{transactie:"n.t.b.",bestelreden:"n.t.b.",subreden:"n.t.b.",schadereden:"n.t.b.",boekingen:[]} }] }
+    ]}
+  ];
+}
+
+function baseWI(){
+  return [
+    { text:"SAP: bestel vanuit VRS-scherm — selecteer juiste artikel en klik op 'Config. Lijst'.", owner:"Operator (bij twijfel: Teamcoach)" },
+    { text:"Selecteer juiste onderdeel en klik op 'Afdrukken Overzicht'.", owner:"Operator (bij twijfel: Teamcoach)" },
+    { text:"Selecteer juiste reden & subreden (rework). Kies de meest passende regel.", owner:"Operator / Teamcoach" },
+    { text:"Verwerking witte kopie: plaats de witte kopie op de bijhorende locatie (voorkom dubbel bestellen).", owner:"Operator (bij twijfel: Teamcoach)" }
+  ];
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function statusClass(s){
+  const v = (s||'').toLowerCase();
+  if(v.includes('afgeh') || v.includes('done')) return 'tag-done';
+  if(v.includes('lop')) return 'tag-lopend';
+  return 'tag-open';
+}
+
+function firstPhoto(photos){ return photos?.length ? photos[0]?.src || null : null; }
+
+/* ============================================================
+   BREADCRUMB
+   ============================================================ */
+function updateBreadcrumb(){
+  const bc = document.getElementById('breadcrumb');
+  const parts = [{ label:'Home', fn: goHome }];
+  if(state.afdeling) parts.push({ label: state.afdeling, fn: () => goAfdeling(state.afdeling) });
+  if(state.pad === 'rework') parts.push({ label:'Rework', fn: () => goPad('rework') });
+  if(state.pad === 'voorraad') parts.push({ label:'Voorraad', fn: () => goPad('voorraad') });
+  if(state.pad === 'machine') parts.push({ label:'Machine', fn: () => goPad('machine') });
+  if(state.reworkSub) parts.push({ label: state.reworkSub, fn: () => goReworkSub(state.reworkSub) });
+  if(state.voorraadSub) parts.push({ label: state.voorraadSub, fn: () => goVoorraadSub(state.voorraadSub) });
+  if(state.machinePart?.machine) parts.push({ label: state.machinePart.machine, fn: () => openMachinePart(state.machinePart.machine, state.machinePart.deel) });
+  if(state.issue?.label) parts.push({ label: state.issue.label, fn: null });
+
+  bc.innerHTML = parts.map((p, i) => {
+    const last = i === parts.length - 1;
+    if(last) return `<span class="crumb-item"><span class="crumb-current">${esc(p.label)}</span></span>`;
+    return `<span class="crumb-item"><span class="crumb-link" onclick="(${p.fn.toString()})()">${esc(p.label)}</span><span class="crumb-sep">›</span></span>`;
+  }).join('');
+}
+
+function setCrumb(label){
+  document.getElementById('breadcrumb').innerHTML =
+    `<span class="crumb-item"><span class="crumb-link" onclick="goHome()">Home</span><span class="crumb-sep">›</span></span>` +
+    `<span class="crumb-item"><span class="crumb-current">${esc(label)}</span></span>`;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+function buildSidebarHTML(){
+  const items = [];
+  Object.keys(reworkData).forEach(sub => {
+    reworkData[sub].issues.forEach(it => {
+      if(it.bleeder) items.push({ title: it.label, path:`Rework · ${sub}`, open:() => { if(!state.afdeling) goAfdeling('Assemblage'); goPad('rework'); goReworkSub(sub); openIssueDetail({source:'rework',sub,issueId:it.id}); }});
+    });
+  });
+  const afd = state.afdeling;
+  if(afd){
+    const machines = machineData[afd] || defaultMachineData(afd);
+    machines.forEach(m => m.delen.forEach(d => d.issues.forEach(it => {
+      if(it.bleeder) items.push({ title: it.label, path:`${afd} · ${m.machine} · ${d.deel}`, open:() => { goAfdeling(afd); goPad('machine'); openMachinePart(m.machine, d.deel); openIssueDetail({source:'machine',machine:m.machine,deel:d.deel,issueId:it.id}); }});
+    })));
+  }
+  window.__bleeders = items;
+
+  const bleedersHTML = items.length ? items.slice(0,18).map((x,i)=> `
+    <div class="bleed-item" onclick="window.__bleeders[${i}]?.open()">
+      <div class="n">${esc(x.title)}</div>
+      <div class="p">${esc(x.path)}</div>
+    </div>`).join('')
+    : `<div class="bleed-item" style="cursor:default;"><div class="n">Geen bleeders</div><div class="p">Kies afdeling of markeer issues met bleeder: true.</div></div>`;
+
+  return `
+    <div class="escalatie-card">
+      <h4>⚠ Escalatieregel (altijd)</h4>
+      <p>Issue niet gevonden in dashboard? Dan is escalatie verplicht via teamcoach + signaal naar Proces Engineer.</p>
+      <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="openEscalatie('Niet gevonden in dashboard')">Niet gevonden → Escaleren</button>
+    </div>
+
+    <div class="side-panel">
+      <div class="side-panel-head">
+        <span class="t">🔴 Bleeders</span>
+        <button class="btn btn-icon" style="width:28px;height:28px;font-size:13px;" onclick="refreshSidebar()">↻</button>
+      </div>
+      <div class="bleeders-list">${bleedersHTML}</div>
+    </div>
+
+    <div class="side-panel" style="background:var(--bg1);">
+      <div class="side-panel-head"><span class="t">📷 Tip foto's</span></div>
+      <div style="padding:10px 12px;font-size:11.5px;color:var(--muted);line-height:1.5;">
+        Gebruik 1–3 foto's per issue: defectbeeld + context.<br/>
+        Koppel via <code style="font-family:var(--mono);font-size:10.5px;">photos:[{src:'img/...', caption:'...'}]</code>.
+      </div>
+    </div>
+  `;
+}
+
+function refreshSidebar(){
+  const title = state.afdeling ? `${state.afdeling}` : 'Dashboard';
+  const sub = state.afdeling ? 'Bleeders geselecteerde afdeling + globale rework bleeders.' : 'Selecteer een afdeling om machine-bleeders te laden.';
+  const html = buildSidebarHTML();
+
+  document.getElementById('sideTitle').textContent = title;
+  document.getElementById('sideSub').textContent = sub;
+  document.getElementById('sideBody').innerHTML = html;
+  document.getElementById('sideTitle2').textContent = title;
+  document.getElementById('sideSub2').textContent = sub;
+  document.getElementById('sideBody2').innerHTML = html;
+}
+
+/* ============================================================
+   SCREEN MANAGEMENT
+   ============================================================ */
+function showOnly(id){
+  document.querySelectorAll('.screen').forEach(el => {
+    el.classList.remove('active');
+    el.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  requestAnimationFrame(() => el.classList.add('active'));
+  document.getElementById('contentScroll').scrollTop = 0;
+}
+
+/* ============================================================
+   HOME
+   ============================================================ */
+function goHome(){
+  Object.assign(state, { afdeling:null, pad:null, reworkSub:null, voorraadSub:null, machinePart:null, issue:null, heroIndex:0 });
+  document.getElementById('screen-home').innerHTML = `
+    <div class="panel">
+      <h2>Start — Fabriek Issues Navigator</h2>
+      <p>Gebruik dit dashboard als <strong>kennisbron</strong> op elke werkplek: herkenning, leren en bewezen oplossingen. Zie je jouw issue niet? Dan is escalatie verplicht.</p>
+      <div class="rule-box">
+        <strong>Niet gevonden = escalatie verplicht.</strong><br/>
+        1) Teamcoach constaterende afdeling (escalatieladder)<br/>
+        2) Signaal naar Proces Engineer zodat dashboard wordt aangevuld.
+        <div class="rule-actions">
+          <button class="btn btn-danger" onclick="openEscalatie('Niet gevonden in dashboard')">⚠ Escaleren</button>
+          <button class="btn" onclick="openHelp()">Uitleg</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Kies jouw afdeling</h2>
+      <p>Selecteer de afdeling waar het issue zich voordoet.</p>
+      <div class="grid-depts">
+        ${afdelingen.map(a => `
+          <div class="big-card" onclick="goAfdeling('${esc(a)}')">
+            <div>
+              <div class="card-title">${esc(a)}</div>
+              <div class="card-meta">${esc(teamcoachByAfdeling[a] || 'Teamcoach')}</div>
+            </div>
+            <div class="pill">Open →</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly('screen-home');
+}
+
+/* ============================================================
+   AFDELING
+   ============================================================ */
+function goAfdeling(afd){
+  Object.assign(state, { afdeling:afd, pad:null, reworkSub:null, voorraadSub:null, machinePart:null, issue:null, heroIndex:0 });
+  document.getElementById('screen-afdeling').innerHTML = `
+    <div class="panel">
+      <h2>${esc(afd)}</h2>
+      <p>Selecteer het onderwerp. Dit dashboard is een <strong>kennisbron</strong> — geen sturing.</p>
+      <div class="rule-box">
+        <strong>Niet gevonden?</strong> Escaleer via <strong>${esc(teamcoachByAfdeling[afd]||'Teamcoach')}</strong> + meld aan Proces Engineer.
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Kies onderwerp</h2>
+      <div class="grid-3">
+        <div class="big-card" onclick="goPad('rework')">
+          <div class="accent-bar" style="background:var(--rework);"></div>
+          <div><div class="card-title">Rework</div><div class="card-meta">Kwaliteit · Voorraad · Pickfout</div></div>
+          <div class="pill">Open →</div>
+        </div>
+        <div class="big-card" onclick="goPad('voorraad')">
+          <div class="accent-bar" style="background:var(--voorraad);"></div>
+          <div><div class="card-title">Voorraad</div><div class="card-meta">Verkeerd · Geen voorraad · Afkeur · Retour</div></div>
+          <div class="pill">Open →</div>
+        </div>
+        <div class="big-card" onclick="goPad('machine')">
+          <div class="accent-bar" style="background:var(--machine);"></div>
+          <div><div class="card-title">Machine</div><div class="card-meta">Machines & onderdelen per afdeling</div></div>
+          <div class="pill">Open →</div>
+        </div>
+      </div>
+    </div>
+  `;
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly('screen-afdeling');
+}
+
+/* ============================================================
+   PAD
+   ============================================================ */
+function goPad(pad){
+  Object.assign(state, { pad, reworkSub:null, voorraadSub:null, machinePart:null, issue:null, heroIndex:0 });
+  if(pad === 'rework') renderRework();
+  if(pad === 'voorraad') renderVoorraad();
+  if(pad === 'machine') renderMachine();
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly(`screen-${pad}`);
+}
+
+/* ============================================================
+   REWORK
+   ============================================================ */
+function renderRework(){
+  document.getElementById('screen-rework').innerHTML = `
+    <div class="panel">
+      <h2>Rework — kies categorie</h2>
+      <p>Klik door naar subthema voor fotokaarten per issue.</p>
+      <div class="rule-box"><strong>Niet gevonden?</strong> Escaleren + signaal P&E.</div>
+    </div>
+    <div class="panel">
+      <div class="grid-3" style="margin-top:0;">
+        ${['Kwaliteit','Voorraad','Pickfout'].map(k => {
+          const d = reworkData[k];
+          return `<div class="big-card" onclick="goReworkSub('${k}')">
+            <div class="accent-bar" style="background:${d.accent};"></div>
+            <div><div class="card-title">${k}</div><div class="card-meta">${d.issues.length} issues · ${d.issues.filter(x=>x.bleeder).length} bleeders</div></div>
+            <div class="pill">Open →</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function goReworkSub(sub){
+  Object.assign(state, { reworkSub:sub, issue:null, heroIndex:0 });
+  const d = reworkData[sub];
+  document.getElementById('screen-rework-sub').innerHTML = `
+    <div class="panel">
+      <h2>${esc(state.afdeling)} · Rework · ${esc(sub)}</h2>
+      <p>Herken jij jouw issue? Klik op de kaart die het beste past.</p>
+      <div class="rule-box"><strong>Issue niet aanwezig?</strong> Escalatie verplicht via teamcoach + signaal P&E.</div>
+    </div>
+    <div class="panel">
+      <h2>Issues</h2>
+      <p>4 per rij — scroll voor meer.</p>
+      <div class="gallery-wrap" style="margin-top:12px;">
+        <div class="gallery">
+          ${d.issues.map(it => photoCardHTML({
+            label:it.label, status:it.status, bleeder:it.bleeder,
+            subline:`Actie: ${it.actiehouder}`, photo:firstPhoto(it.photos),
+            onClick:`openIssueDetail({source:'rework',sub:'${esc(sub)}',issueId:'${esc(it.id)}'})`
+          })).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly('screen-rework-sub');
+}
+
+/* ============================================================
+   VOORRAAD
+   ============================================================ */
+function renderVoorraad(){
+  document.getElementById('screen-voorraad').innerHTML = `
+    <div class="panel">
+      <h2>${esc(state.afdeling)} · Voorraad</h2>
+      <p>Kies het type. Daarna zie je de werkinstructie + SAP velden.</p>
+      <div class="rule-box"><strong>Niet gevonden?</strong> Escaleren + signaal P&E.</div>
+    </div>
+    <div class="panel">
+      <h2>Types</h2>
+      <div class="gallery-wrap" style="margin-top:12px;">
+        <div class="gallery">
+          ${Object.keys(voorraadInstructies).map(k => photoCardHTML({
+            label:voorraadInstructies[k].label, status:'WI', bleeder:false,
+            subline:'Klik voor werkinstructie + SAP',
+            photo:firstPhoto(voorraadInstructies[k].photos),
+            onClick:`goVoorraadSub('${esc(k)}')`
+          })).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function goVoorraadSub(sub){
+  Object.assign(state, { voorraadSub:sub, issue:null, heroIndex:0 });
+  const d = voorraadInstructies[sub];
+  document.getElementById('screen-voorraad-sub').innerHTML = `
+    <div class="panel">
+      <h2>${esc(state.afdeling)} · Voorraad · ${esc(sub)}</h2>
+      <p>${esc(d.les||'')}</p>
+      <div class="rule-box"><strong>Niet gevonden?</strong> Escaleren + signaal P&E.</div>
+    </div>
+    <div class="detail">
+      <div class="detail-left">
+        <div class="hero">${heroContent(d.photos, sub)}<div class="hero-label">${esc(sub)}</div></div>
+        <div class="thumbs">${thumbsHTML(d.photos)}</div>
+      </div>
+      <div class="detail-right">
+        <div class="box"><div class="kicker">WERKINSTRUCTIE</div><div class="steps">${d.steps.map((s,i)=>stepHTML(i+1,s.text,s.owner)).join('')}</div></div>
+        <div class="box"><div class="kicker">SAP / BESTELADVIES</div>${sapHTML(d.sap)}<div class="rule-box" style="margin-top:10px;"><strong>Let op:</strong> twijfel over juiste reden? → teamcoach.</div></div>
+      </div>
+    </div>
+  `;
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly('screen-voorraad-sub');
+}
+
+/* ============================================================
+   MACHINE
+   ============================================================ */
+function renderMachine(){
+  const afd = state.afdeling;
+  const machines = machineData[afd] || defaultMachineData(afd);
+  document.getElementById('screen-machine').innerHTML = `
+    <div class="panel">
+      <h2>${esc(afd)} · Machine</h2>
+      <p>Kies machine, dan onderdeel, dan issue.</p>
+      <div class="rule-box"><strong>Niet gevonden?</strong> Escaleren + signaal P&E.</div>
+    </div>
+    <div class="panel">
+      <h2>Machines</h2>
+      <div class="grid-4" style="margin-top:12px;">
+        ${machines.map(m=>`
+          <div class="big-card" onclick="openMachineMachine('${esc(m.machine)}')">
+            <div class="accent-bar" style="background:var(--machine);"></div>
+            <div><div class="card-title">${esc(m.machine)}</div><div class="card-meta">${m.delen.length} onderdelen</div></div>
+            <div class="pill">Open →</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function openMachineMachine(machineName){
+  const machines = machineData[state.afdeling] || defaultMachineData(state.afdeling);
+  const m = machines.find(x => x.machine === machineName);
+  if(!m) return;
+  state.machinePart = { machine: machineName, deel: null };
+  state.issue = null;
+
+  document.getElementById('screen-machine-part').innerHTML = `
+    <div class="panel">
+      <h2>${esc(state.afdeling)} · ${esc(machineName)}</h2>
+      <p>Kies het onderdeel.</p>
+      <div style="margin-top:10px;"><button class="btn" onclick="goPad('machine')">← Machines</button></div>
+    </div>
+    <div class="panel">
+      <h2>Onderdelen</h2>
+      <div class="grid-4" style="margin-top:12px;">
+        ${m.delen.map(d=>`
+          <div class="big-card" onclick="openMachinePart('${esc(machineName)}','${esc(d.deel)}')">
+            <div class="accent-bar" style="background:var(--machine);"></div>
+            <div><div class="card-title">${esc(d.deel)}</div><div class="card-meta">${d.issues.length} issues</div></div>
+            <div class="pill">Open →</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly('screen-machine-part');
+}
+
+function openMachinePart(machineName, deelName){
+  const machines = machineData[state.afdeling] || defaultMachineData(state.afdeling);
+  const m = machines.find(x => x.machine === machineName);
+  const d = m?.delen.find(x => x.deel === deelName);
+  if(!d) return;
+  state.machinePart = { machine: machineName, deel: deelName };
+  state.issue = null;
+
+  document.getElementById('screen-machine-part').innerHTML = `
+    <div class="panel">
+      <h2>${esc(state.afdeling)} · ${esc(machineName)} · ${esc(deelName)}</h2>
+      <p>Klik een kaart om het detail + werkinstructie te zien.</p>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="openMachineMachine('${esc(machineName)}')">← Onderdelen</button>
+      </div>
+      <div class="rule-box" style="margin-top:12px;"><strong>Niet gevonden?</strong> Escaleren + signaal P&E.</div>
+    </div>
+    <div class="panel">
+      <h2>Issues</h2>
+      <div class="gallery-wrap" style="margin-top:12px;">
+        <div class="gallery">
+          ${d.issues.map(it => photoCardHTML({
+            label:it.label, status:it.status, bleeder:it.bleeder,
+            subline:`Actie: ${it.actiehouder}`, photo:firstPhoto(it.photos),
+            onClick:`openIssueDetail({source:'machine',machine:'${esc(machineName)}',deel:'${esc(deelName)}',issueId:'${esc(it.id)}'})`
+          })).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly('screen-machine-part');
+}
+
+/* ============================================================
+   ISSUE DETAIL
+   ============================================================ */
+function openIssueDetail(ref){
+  state.heroIndex = 0;
+  let issue = null;
+  let context = '';
+
+  if(ref.source === 'rework'){
+    issue = reworkData[ref.sub]?.issues.find(x => x.id === ref.issueId);
+    context = `${state.afdeling} · Rework · ${ref.sub}`;
+  }
+  if(ref.source === 'machine'){
+    const machines = machineData[state.afdeling] || defaultMachineData(state.afdeling);
+    const m = machines.find(x => x.machine === ref.machine);
+    const d = m?.delen.find(x => x.deel === ref.deel);
+    issue = d?.issues.find(x => x.id === ref.issueId);
+    context = `${state.afdeling} · ${ref.machine} · ${ref.deel}`;
+  }
+  if(!issue) return;
+  state.issue = issue;
+
+  const wi = issue.werkinstructie?.length ? issue.werkinstructie : baseWI();
+  const photos = issue.photos || [];
+  const heroSrc = photos[0]?.src || null;
+  const heroCap = photos[0]?.caption || issue.label;
+  const backFn = ref.source === 'rework'
+    ? `goReworkSub('${esc(ref.sub)}')`
+    : `openMachinePart('${esc(ref.machine||'')}','${esc(ref.deel||'')}')`;
+
+  document.getElementById('screen-issue-detail').innerHTML = `
+    <div class="panel">
+      <h2>${esc(context)}</h2>
+      <p><strong>Geselecteerd:</strong> ${esc(issue.label)}</p>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="${backFn}">← Terug</button>
+        <button class="btn btn-danger" onclick="openEscalatie('Issue niet passend: ${esc(issue.label)}')">Niet passend → Escaleren</button>
+      </div>
+      <div class="rule-box" style="margin-top:12px;"><strong>Als dit issue jouw situatie niet dekt:</strong> escalatie verplicht + signaal P&E.</div>
+    </div>
+
+    <div class="detail">
+      <div class="detail-left">
+        <div class="hero" id="heroBox">
+          ${heroSrc
+            ? `<img src="${esc(heroSrc)}" alt="${esc(heroCap)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(issue.label))}'"/>`
+            : placeholderInner(issue.label)}
+          <div class="hero-label">${esc(heroCap)}</div>
+        </div>
+        <div class="thumbs">${thumbsHTML(photos)}</div>
+      </div>
+
+      <div class="detail-right">
+        <div class="box">
+          <div class="kicker">ISSUE</div>
+          <div class="detail-title">
+            ${esc(issue.label)}
+            ${issue.bleeder ? `<span class="pill bleeder" style="margin-left:8px;vertical-align:middle;">BLEEDER</span>` : ''}
+          </div>
+          <div class="tags">
+            <span class="tag ${statusClass(issue.status)}">${esc(issue.status||'—')}</span>
+          </div>
+          <div class="detail-meta">Actie: ${esc(issue.actie||'—')} · Houder: ${esc(issue.actiehouder||'—')}</div>
+        </div>
+
+        <div class="box">
+          <div class="kicker">HERKENNING / LES</div>
+          <div class="detail-text">${esc(issue.herkenning||'—')}</div>
+          <div class="detail-meta"><strong>Les:</strong> ${esc(issue.les||'—')}</div>
+        </div>
+
+        <div class="box">
+          <div class="kicker">WERKINSTRUCTIE</div>
+          <div class="steps">${wi.map((s,i)=>stepHTML(i+1,s.text,s.owner)).join('')}</div>
+        </div>
+
+        <div class="box">
+          <div class="kicker">SAP / BESTELREDEN</div>
+          ${sapHTML(issue.sap)}
+          <div class="rule-box" style="margin-top:10px;"><strong>Niet zeker?</strong> Niet gokken — direct via teamcoach escaleren.</div>
+        </div>
+      </div>
+    </div>
+  `;
+  updateBreadcrumb();
+  refreshSidebar();
+  showOnly('screen-issue-detail');
+}
+
+/* ============================================================
+   HTML BUILDERS
+   ============================================================ */
+function photoCardHTML({label,status,bleeder,subline,photo,onClick}){
+  const isWI = status === 'WI';
+  const tClass = isWI ? 'tag' : statusClass(status);
+  const tLabel = isWI ? 'WI' : status;
+  return `
+    <div class="photo-card" onclick="${onClick}">
+      <div class="photo-frame">
+        ${photo
+          ? `<img src="${esc(photo)}" alt="${esc(label)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(label))}'"/>`
+          : placeholderInner(label)}
+      </div>
+      <div class="photo-info">
+        <div class="name">${esc(label)}</div>
+        <div class="sub">${esc(subline||'')}</div>
+        <div class="tags">
+          <span class="tag ${tClass}">${esc(tLabel)}</span>
+          ${bleeder ? `<span class="pill bleeder">BLEEDER</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function placeholderInner(label){
+  return `<div class="placeholder"><div class="icon">📷</div><div>Foto · ${esc(label).replace(/'/g,"&#39;")}</div></div>`.replace(/'/g,'&#39;').replace(/\n/g,'');
+}
+
+function heroContent(photos, label){
+  if(!photos?.length) return placeholderInner(label);
+  const p = photos[state.heroIndex] || photos[0];
+  return p.src ? `<img src="${esc(p.src)}" alt="${esc(p.caption||label)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(label))}'"/>` : placeholderInner(label);
+}
+
+function thumbsHTML(photos){
+  if(!photos?.length) return `<div style="padding:8px 2px;color:var(--muted);font-size:11.5px;font-weight:600;">Geen extra foto's — voeg toe via <code style='font-family:var(--mono);font-size:10.5px;'>photos:[...]</code></div>`;
+  return photos.map((p,i) => `
+    <div class="thumb" onclick="setHero(${i})" title="${esc(p.caption||'')}">
+      <img src="${esc(p.src)}" alt="${esc(p.caption||'foto')}" onerror="this.style.display='none'"/>
+    </div>`).join('');
+}
+
+function setHero(i){
+  state.heroIndex = i;
+  const box = document.getElementById('heroBox');
+  if(!box || !state.issue) return;
+  const photos = state.issue.photos || [];
+  const p = photos[i];
+  const cap = p?.caption || state.issue.label;
+  box.innerHTML = (p?.src
+    ? `<img src="${esc(p.src)}" alt="${esc(cap)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(state.issue.label))}'"/>`
+    : placeholderInner(state.issue.label))
+    + `<div class="hero-label">${esc(cap)}</div>`;
+}
+
+function stepHTML(n, text, owner){
+  return `
+    <div class="step">
+      <div class="step-num">${n}</div>
+      <div class="step-body">
+        <div class="t">${esc(text)}</div>
+        <div class="o">Verantwoordelijk: ${esc(owner||'—')}</div>
+      </div>
+    </div>`;
+}
+
+function sapHTML(sap){
+  const f = (v) => `<div class="sap-value">${esc(v||'n.t.b.')}</div>`;
+  const items = [
+    ['TRANSACTIE', sap?.transactie],
+    ['BESTELREDEN', sap?.bestelreden],
+    ['SUBREDEN', sap?.subreden],
+    ['SCHADEREDEN', sap?.schadereden]
+  ];
+  const boek = sap?.boekingen || [];
+  return `
+    <div class="sap-grid">
+      ${items.map(([l,v])=>`<div class="sap-item"><div class="sap-label">${l}</div>${f(v)}</div>`).join('')}
+    </div>
+    <div style="margin-top:10px;">
+      <div class="sap-label" style="font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:5px;">SAP BOEKINGEN</div>
+      ${boek.length
+        ? `<ul style="margin-left:18px;">${boek.map(x=>`<li style="font-size:12px;color:var(--muted);line-height:1.5;">${esc(x)}</li>`).join('')}</ul>`
+        : `<div style="font-size:11.5px;color:var(--muted);">n.t.b. — voeg toe in <code style="font-family:var(--mono);font-size:10.5px;">sap.boekingen[]</code></div>`}
+    </div>`;
+}
+
+/* ============================================================
+   SEARCH (fuzzy: bevat alle woorden)
+   ============================================================ */
+let flatIndex = [];
+
+function buildIndex(){
+  flatIndex = [];
+  Object.keys(reworkData).forEach(sub => {
+    reworkData[sub].issues.forEach(it => {
+      flatIndex.push({
+        type:'Rework', title:it.label,
+        kw:[it.label,it.actie,it.actiehouder,it.herkenning,it.les,it.sap?.transactie,it.sap?.bestelreden,sub,'rework'].filter(Boolean).join(' ').toLowerCase(),
+        open:() => { if(!state.afdeling) goAfdeling('Assemblage'); goPad('rework'); goReworkSub(sub); openIssueDetail({source:'rework',sub,issueId:it.id}); }
+      });
+    });
+  });
+  Object.keys(voorraadInstructies).forEach(k => {
+    const d = voorraadInstructies[k];
+    flatIndex.push({
+      type:'Voorraad', title:k,
+      kw:[k,d.les,(d.steps||[]).map(s=>s.text).join(' '),d.sap?.bestelreden,'voorraad'].filter(Boolean).join(' ').toLowerCase(),
+      open:() => { if(!state.afdeling) goAfdeling('Assemblage'); goPad('voorraad'); goVoorraadSub(k); }
+    });
+  });
+  afdelingen.forEach(afd => {
+    const machines = machineData[afd] || defaultMachineData(afd);
+    machines.forEach(m => m.delen.forEach(d => d.issues.forEach(it => {
+      flatIndex.push({
+        type:'Machine', title:it.label,
+        kw:[it.label,it.actie,it.actiehouder,it.les,afd,m.machine,d.deel,'machine'].filter(Boolean).join(' ').toLowerCase(),
+        open:() => { goAfdeling(afd); goPad('machine'); openMachinePart(m.machine,d.deel); openIssueDetail({source:'machine',machine:m.machine,deel:d.deel,issueId:it.id}); }
+      });
+    })));
+  });
+}
+
+function runSearch(){
+  const q = (document.getElementById('searchInput').value||'').trim().toLowerCase();
+  buildIndex();
+  setCrumb('Zoeken');
+
+  if(!q){
+    document.getElementById('screen-search').innerHTML = `
+      <div class="panel"><h2>Zoeken</h2><p>Vul een zoekterm in en druk Enter of klik Zoek.</p></div>`;
+    showOnly('screen-search');
+    return;
+  }
+
+  // Fuzzy: alle woorden moeten voorkomen
+  const words = q.split(/\s+/).filter(Boolean);
+  const hits = flatIndex.filter(x => words.every(w => x.kw.includes(w))).slice(0, 60);
+
+  window.__hits = hits;
+
+  document.getElementById('screen-search').innerHTML = `
+    <div class="panel">
+      <h2>Zoekresultaten</h2>
+      <p>Zoekterm: <strong>${esc(q)}</strong> · ${hits.length} treffer(s)</p>
+      ${!hits.length ? `
+        <div class="rule-box" style="margin-top:12px;">
+          <strong>Geen resultaat gevonden.</strong><br/>
+          Dit betekent: escalatie verplicht + signaal P&E.
+          <div class="rule-actions">
+            <button class="btn btn-danger" onclick="openEscalatie('Zoekterm zonder match: ${esc(q)}')">⚠ Escaleren</button>
+            <button class="btn" onclick="openMeldingForm()">+ Nieuw issue melden</button>
+          </div>
+        </div>` : ''}
+    </div>
+    ${hits.length ? `
+      <div class="panel">
+        <h2>Matches</h2>
+        <div class="search-hits">
+          ${hits.map((h,i) => `
+            <div class="hit-card" onclick="window.__hits[${i}]?.open()">
+              <div>
+                <div class="ht">${esc(h.title)}</div>
+                <div class="hm">${esc(h.type)}</div>
+              </div>
+              <span class="hit-type">${esc(h.type)}</span>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+  `;
+  showOnly('screen-search');
+}
+
+/* ============================================================
+   MELDING FORM (nieuw issue)
+   ============================================================ */
+let meldingState = { ernst: null };
+
+function openMeldingForm(){
+  meldingState = { ernst: null };
+  openModal('＋ Nieuw issue melden', `
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+      Vul het formulier in. Na verzenden wordt een vooringevulde mail geopend naar de Proces Engineer.
+    </p>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="form-field">
+          <label>Jouw naam</label>
+          <input id="f-naam" type="text" placeholder="Naam melder…" oninput="updatePreview()"/>
+        </div>
+        <div class="form-field">
+          <label>Afdeling</label>
+          <select id="f-afd" onchange="updatePreview()">
+            <option value="">— Kies afdeling —</option>
+            ${afdelingen.map(a=>`<option value="${esc(a)}" ${state.afdeling===a?'selected':''}>${esc(a)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Categorie</label>
+          <select id="f-cat" onchange="updatePreview()">
+            <option value="">— Kies categorie —</option>
+            <option>Rework · Kwaliteit</option>
+            <option>Rework · Voorraad</option>
+            <option>Rework · Pickfout</option>
+            <option>Voorraad</option>
+            <option>Machine / Technisch</option>
+            <option>Anders</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Datum / tijdstip</label>
+          <input id="f-datum" type="datetime-local" oninput="updatePreview()" value="${new Date().toISOString().slice(0,16)}"/>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>Omschrijving issue</label>
+        <textarea id="f-omschr" placeholder="Beschrijf het issue zo concreet mogelijk: wat zag je, waar, welk onderdeel/machine…" oninput="updatePreview()"></textarea>
+
+```
+  </div>
+
+  <div class="form-field">
+    <label>Ernst</label>
+    <div class="ernst-row">
+      <div class="ernst-option" id="ernst-laag" onclick="setErnst('Laag')">🟢 Laag</div>
+      <div class="ernst-option" id="ernst-midden" onclick="setErnst('Midden')">🟡 Midden</div>
+      <div class="ernst-option" id="ernst-hoog" onclick="setErnst('Hoog')">🔴 Hoog</div>
+    </div>
+  </div>
+
+  <div class="form-field">
+    <label>Eerste actie genomen?</label>
+    <input id="f-actie" type="text" placeholder="Bijv. 'teamcoach geïnformeerd', 'machine stilgelegd'…" oninput="updatePreview()"/>
+  </div>
+
+  <div class="form-field">
+    <label>Foto-omschrijving (pad/naam)</label>
+    <input id="f-foto" type="text" placeholder="Bijv. img/machinale/trilling_01.jpg" oninput="updatePreview()"/>
+  </div>
+
+  <div class="form-field">
+    <label>Voorvertoning e-mail inhoud</label>
+    <div class="form-preview" id="formPreview"></div>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn" onclick="resetMeldingForm()">Reset</button>
+    <button class="btn btn-primary" onclick="updatePreview(true)">Vernieuwen voorvertoning</button>
+    <button class="btn btn-success" onclick="verstuurMelding()">📧 Verstuur naar P&E</button>
+  </div>
+</div>
+```
+
+`);
+setTimeout(updatePreview, 100);
+}
+
+function setErnst(val){
+meldingState.ernst = val;
+[‘laag’,‘midden’,‘hoog’].forEach(k => {
+const el = document.getElementById(`ernst-${k}`);
+if(el) el.className = `ernst-option${val.toLowerCase()===k ? ` selected-${k}` : ''}`;
+});
+updatePreview();
+}
+
+function getMeldingData(){
+return {
+naam: document.getElementById(‘f-naam’)?.value || ‘’,
+afd: document.getElementById(‘f-afd’)?.value || ‘’,
+cat: document.getElementById(‘f-cat’)?.value || ‘’,
+datum: document.getElementById(‘f-datum’)?.value || ‘’,
+omschr: document.getElementById(‘f-omschr’)?.value || ‘’,
+ernst: meldingState.ernst || ‘—’,
+actie: document.getElementById(‘f-actie’)?.value || ‘’,
+foto: document.getElementById(‘f-foto’)?.value || ‘’
+};
+}
+
+function buildMailBody(d){
+return `Hoi ${procesEngineer.name},
+
+Ik meld een nieuw issue dat niet in het Fabriek Issues Navigator dashboard staat.
+
+──────────────────────────────
+MELDER       : ${d.naam || ‘—’}
+AFDELING     : ${d.afd || ‘—’}
+CATEGORIE    : ${d.cat || ‘—’}
+DATUM/TIJD   : ${d.datum || ‘—’}
+ERNST        : ${d.ernst}
+──────────────────────────────
+
+OMSCHRIJVING:
+${d.omschr || ‘—’}
+
+EERSTE ACTIE GENOMEN:
+${d.actie || ‘—’}
+
+FOTO (pad/naam):
+${d.foto || ‘—’}
+──────────────────────────────
+
+Verzoek om dit issue toe te voegen aan het dashboard (incl. WI + SAP velden).
+
+Groet,
+${d.naam || ‘—’}`;
+}
+
+function updatePreview(force){
+const d = getMeldingData();
+const body = buildMailBody(d);
+const el = document.getElementById(‘formPreview’);
+if(el){
+el.style.display = ‘block’;
+el.textContent = body;
+}
+}
+
+function verstuurMelding(){
+const d = getMeldingData();
+if(!d.omschr.trim()){
+alert(‘Vul minimaal een omschrijving in voor je verstuurt.’);
+return;
+}
+const subject = `[Dashboard] Nieuw issue — ${d.afd||'?'} — ${d.cat||'?'} — Ernst: ${d.ernst}`;
+const body = buildMailBody(d);
+const mailto = `mailto:${encodeURIComponent(procesEngineer.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+window.open(mailto, ‘_blank’);
+}
+
+function resetMeldingForm(){
+meldingState = { ernst: null };
+[‘f-naam’,‘f-afd’,‘f-cat’,‘f-actie’,‘f-foto’,‘f-omschr’].forEach(id => {
+const el = document.getElementById(id);
+if(el) el.value = ‘’;
+});
+[‘laag’,‘midden’,‘hoog’].forEach(k => {
+const el = document.getElementById(`ernst-${k}`);
+if(el) el.className = ‘ernst-option’;
+});
+const prev = document.getElementById(‘formPreview’);
+if(prev) prev.style.display = ‘none’;
+}
+
+/* ============================================================
+MODAL / ESCALATIE / HELP
+============================================================ */
+function openModal(title, html){
+document.getElementById(‘modalTitle’).textContent = title;
+document.getElementById(‘modalBody’).innerHTML = html;
+document.getElementById(‘modalBackdrop’).classList.add(‘open’);
+}
+
+function closeModal(){
+document.getElementById(‘modalBackdrop’).classList.remove(‘open’);
+}
+
+function backdropClose(e){
+if(e.target.id === ‘modalBackdrop’) closeModal();
+}
+
+function openHelp(){
+openModal(‘Uitleg — Niet gevonden = escaleren’, `<p>Dit dashboard is een <strong>informatiebron</strong>. Het groeit mee met de fabriek. Eén harde afspraak:</p> <div class="rule-box" style="margin:12px 0;"> <strong>Komt jouw issue niet voor?</strong><br/>Escalatie verplicht via teamcoach + signaal naar Proces Engineer. </div> <h4>Waarom?</h4> <ul> <li>Nieuwe/ernstige issues vallen niet tussen wal en schip.</li> <li>We leggen leerpunten vast zodat iedereen dezelfde bril gebruikt.</li> <li>We bouwen een overzicht van bleeders en bewezen oplossingen.</li> </ul> <h4>Foto's</h4> <ul> <li>Gebruik 1–3 foto's per issue: defectbeeld + context.</li> <li>Voeg toe via <code style="font-family:var(--mono);font-size:11px;">photos:[{src:'img/...', caption:'...'}]</code>.</li> </ul> <h4>Nieuw issue melden</h4> <p>Gebruik de <strong>+ knop</strong> rechtsonder om een issue te melden. Het formulier genereert een vooringevulde mail naar de Proces Engineer.</p>`);
+}
+
+function openEscalatie(context){
+const afd = state.afdeling || ‘(geen afdeling gekozen)’;
+const tc = teamcoachByAfdeling[afd] || ‘Teamcoach constaterende afdeling’;
+
+openModal(‘⚠ Escalatie vereist’, `
+<p><strong>Context:</strong> ${esc(context)}<br/><strong>Afdeling:</strong> ${esc(afd)}<br/><strong>Eerste stap:</strong> meld bij <strong>${esc(tc)}</strong>.</p>
+
+```
+<h4>Twee lijnen (parallel)</h4>
+<ul>
+  <li><strong>Lijn 1:</strong> Teamcoach start escalatie richting betrokkenen.</li>
+  <li><strong>Lijn 2:</strong> Signaal naar Proces Engineer — dashboard aanvullen (foto + WI + SAP).</li>
+</ul>
+
+<h4>Signaal naar Proces Engineer</h4>
+<p>
+  <button class="btn btn-primary" onclick="closeModal(); openMeldingForm();" style="margin-right:8px;">+ Nieuw issue formulier</button>
+  <a class="btn btn-primary" style="text-decoration:none;"
+     href="mailto:${encodeURIComponent(procesEngineer.email)}?subject=${encodeURIComponent('[Dashboard] Nieuw issue — aanvullen')}&body=${encodeURIComponent('Hoi Falco,\n\nNieuw issue niet in dashboard:\n\nAfdeling: '+afd+'\nContext: '+context+'\nOmschrijving: \nFoto\'s: \nImpact: \n\nGroet,')}">
+     📧 Snel mailen
+  </a>
+  <span style="margin-left:8px;color:var(--muted);font-size:11px;">${esc(procesEngineer.email)}</span>
+</p>
+
+<h4>Escalatieladder</h4>
+<ul>
+  ${[
+    ['N1 – Melder','Constateren & rapporteren','direct'],
+    ['N2 – Operator','Instellingen controleren / test','binnen 1 uur'],
+    ['N3 – Lijnoperator','Stop/veiligstellen & escaleren','binnen 2 uur'],
+    ['N4 – Vliegende operator','Alternatieven testen','binnen 4 uur'],
+    ['N5 – Teamcoach','Escaleren naar teamleider','binnen 6 uur'],
+    ['N6 – Teamleider','Escaleren Q&E/TD, communicatie','binnen 24 uur'],
+    ['N7 – Q&E/TD','Analyse, oplossingen, leveranciers','binnen 48 uur'],
+    ['N8 – Operations Manager','Strategische besluitvorming','—']
+  ].map(([n,a,t]) => `<li><strong>${esc(n)}:</strong> ${esc(a)} <span style="color:var(--muted);">(${esc(t)})</span></li>`).join('')}
+</ul>
+<div class="rule-box" style="margin-top:12px;"><strong>Veiligheid?</strong> Altijd direct escaleren — geen wachttijd.</div>
+```
+
+`);
+}
+
+/* ============================================================
+MOBILE SIDEBAR
+============================================================ */
+function openMobileSidebar(){
+document.getElementById(‘mobileSidebarOverlay’).classList.add(‘open’);
+}
+function closeMobileSidebar(){
+document.getElementById(‘mobileSidebarOverlay’).classList.remove(‘open’);
+}
+
+/* ============================================================
+INIT
+============================================================ */
+goHome();
+</script>
+
+</body>
+</html>
