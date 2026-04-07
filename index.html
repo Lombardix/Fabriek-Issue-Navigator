@@ -1750,8 +1750,9 @@ function openIssueDetail(ref){
       <div class="detail-left">
         <div class="hero" id="heroBox">
           ${heroSrc
-            ? `<img src="${esc(heroSrc)}" alt="${esc(heroCap)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(issue.label))}'"/>`
-            : placeholderInner(issue.label)}
+            ? `<img src="${esc(heroSrc)}" alt="${esc(heroCap)}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'"/>`
+            : ''}
+          ${placeholderInner(issue.label)}
           <div class="hero-label">${esc(heroCap)}</div>
         </div>
         <div class="thumbs">${thumbsHTML(photos)}</div>
@@ -1801,12 +1802,13 @@ function photoCardHTML({label,status,bleeder,subline,photo,onClick}){
   const isWI = status === 'WI';
   const tClass = isWI ? 'tag' : statusClass(status);
   const tLabel = isWI ? 'WI' : status;
+  const frameContent = photo
+    ? `<img src="${esc(photo)}" alt="${esc(label)}" style="width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;" onerror="this.style.display='none'"/>${placeholderInner(label)}`
+    : placeholderInner(label);
   return `
     <div class="photo-card" onclick="${onClick}">
-      <div class="photo-frame">
-        ${photo
-          ? `<img src="${esc(photo)}" alt="${esc(label)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(label))}'"/>`
-          : placeholderInner(label)}
+      <div class="photo-frame" style="position:relative;">
+        ${frameContent}
       </div>
       <div class="photo-info">
         <div class="name">${esc(label)}</div>
@@ -1821,13 +1823,16 @@ function photoCardHTML({label,status,bleeder,subline,photo,onClick}){
 }
 
 function placeholderInner(label){
-  return `<div class="placeholder"><div class="icon">📷</div><div>Foto · ${esc(label).replace(/'/g,"&#39;")}</div></div>`.replace(/'/g,'&#39;').replace(/\n/g,'');
+  const safe = esc(label).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+  return `<div class="placeholder"><div class="icon">&#128247;</div><div>Foto &middot; ${safe}</div></div>`;
 }
+
 
 function heroContent(photos, label){
   if(!photos?.length) return placeholderInner(label);
   const p = photos[state.heroIndex] || photos[0];
-  return p.src ? `<img src="${esc(p.src)}" alt="${esc(p.caption||label)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(label))}'"/>` : placeholderInner(label);
+  if(!p.src) return placeholderInner(label);
+  return `<img src="${esc(p.src)}" alt="${esc(p.caption||label)}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'"/>` + placeholderInner(label);
 }
 
 function thumbsHTML(photos){
@@ -1845,10 +1850,10 @@ function setHero(i){
   const photos = state.issue.photos || [];
   const p = photos[i];
   const cap = p?.caption || state.issue.label;
-  box.innerHTML = (p?.src
-    ? `<img src="${esc(p.src)}" alt="${esc(cap)}" onerror="this.parentElement.innerHTML='${esc(placeholderInner(state.issue.label))}'"/>`
-    : placeholderInner(state.issue.label))
-    + `<div class="hero-label">${esc(cap)}</div>`;
+  const imgTag = p?.src
+    ? `<img src="${esc(p.src)}" alt="${esc(cap)}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'"/>`
+    : '';
+  box.innerHTML = imgTag + placeholderInner(state.issue.label) + `<div class="hero-label">${esc(cap)}</div>`;
 }
 
 function stepHTML(n, text, owner){
